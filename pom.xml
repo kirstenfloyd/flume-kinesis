@@ -21,6 +21,13 @@
     </dependency>
   </dependencies>
 
+  <scm>
+    <connection>scm:git:git@github.com:rhysmccaig/flume-kinesis</connection>
+    <developerConnection>scm:git:git@github.com:rhysmccaig/flume-kinesis</developerConnection>
+    <url>https://github.com/rhysmccaig/flume-kinesis</url>
+    <tag>HEAD</tag>
+  </scm>
+
   <build>
     <plugins>
       <plugin>
