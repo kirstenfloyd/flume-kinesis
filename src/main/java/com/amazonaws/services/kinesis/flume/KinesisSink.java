@@ -20,6 +20,8 @@ import java.nio.ByteBuffer;
 import java.util.Random;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Map;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -43,7 +45,7 @@ import com.amazonaws.services.kinesis.model.PutRecordsResult;
 import com.amazonaws.services.kinesis.model.PutRecordsResultEntry;
 
 public class KinesisSink extends AbstractSink implements Configurable {
-  
+
   private static final Log LOG = LogFactory.getLog(KinesisSink.class);
 
   private static final String DEFAULT_KINESIS_ENDPOINT = "https://kinesis.us-east-1.amazonaws.com";
@@ -64,7 +66,7 @@ public class KinesisSink extends AbstractSink implements Configurable {
   private int batchSize;
   private int maxAttempts;
   private boolean rollbackAfterMaxAttempts;
-  
+
   @Override
   public void configure(Context context) {
     this.endpoint = context.getString("endpoint", "https://kinesis.us-east-1.amazonaws.com");
@@ -109,10 +111,11 @@ public class KinesisSink extends AbstractSink implements Configurable {
   @Override
   public Status process() throws EventDeliveryException {
     Status status = null;
-
+    //Get the channel associated with this Sink
     Channel ch = getChannel();
     Transaction txn = ch.getTransaction();
     List<PutRecordsRequestEntry> putRecordsRequestEntryList = Lists.newArrayList();
+    //Start the transaction
     txn.begin();
     try {
       int txnEventCount = 0;
@@ -120,6 +123,7 @@ public class KinesisSink extends AbstractSink implements Configurable {
       int failedTxnEventCount = 0;
 
       for (txnEventCount = 0; txnEventCount < batchSize; txnEventCount++) {
+        //Take an event from the channel
         Event event = ch.take();
         if (event == null) {
           break;
@@ -194,10 +198,18 @@ public class KinesisSink extends AbstractSink implements Configurable {
   }
 
   public PutRecordsRequestEntry buildRequestEntry(Event event) {
-    int partitionKey=new Random().nextInt(( numberOfPartitions - 1) + 1) + 1;
+    String partitionKey;
+    // If there is a "key" on the event header, we will use this as the partition key,
+    if (event.getHeaders().containsKey("key")) {
+      partitionKey = event.getHeaders().get("key");
+    } else { // Or.. a random one to evenly distribute messages across number of partitions configured
+      int pk = new Random().nextInt();
+      partitionKey = "pk_" + pk;
+    }
+    LOG.debug("partitionKey: "+partitionKey);
     PutRecordsRequestEntry entry = new PutRecordsRequestEntry();
     entry.setData(ByteBuffer.wrap(event.getBody()));
-    entry.setPartitionKey("partitionKey_"+partitionKey);
+    entry.setPartitionKey(partitionKey);
     return entry;
   }
 
