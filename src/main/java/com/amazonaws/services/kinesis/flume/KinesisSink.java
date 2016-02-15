@@ -207,7 +207,8 @@ public class KinesisSink extends AbstractSink implements Configurable {
     if (this.partitionKeyFromEvent && event.getHeaders().containsKey("key")) {
       partitionKey = event.getHeaders().get("key");
     } else { // Or.. a random one to evenly distribute messages across number of partitions configured
-      int pk = new Random().nextInt();
+      //int pk = new Random().nextInt();
+      int pk = new Random().nextInt(Integer.MAX_VALUE); //Technically this means we cant get Integer.MAXVALE, but this is just for sharding, so the distribution shouldnt be *too* bad
       partitionKey = "pk_" + pk;
     }
     LOG.debug("partitionKey: "+partitionKey);
