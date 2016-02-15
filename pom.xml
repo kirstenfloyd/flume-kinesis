@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>flume-kinesis</groupId>
   <artifactId>flume-kinesis</artifactId>
-  <version>0.0.14-SNAPSHOT</version>
+  <version>0.0.15-SNAPSHOT</version>
   <dependencies>
     <dependency>
       <groupId>org.apache.flume</groupId>
@@ -60,6 +60,7 @@
                     <exclude>META-INF/*.SF</exclude>
                     <exclude>META-INF/*.DSA</exclude>
                     <exclude>META-INF/*.RSA</exclude>
+                    <exclude>META-INF/LICENSE</exclude> <!-- Problems on OSX -->
                   </excludes>
                 </filter>
                 <filter> <!--Without this, minimiseJar will remove httpcomponents -->
