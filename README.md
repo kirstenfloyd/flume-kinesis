@@ -13,7 +13,7 @@ Forked from https://github.com/sharethrough/flume-kinesis (which was originally 
 
 ```
 mvn clean package
-cp target/flume-kinesis-{version}.jar FLUME_HOME_DIR/lib
+cp target/flume-kinesis-{version}.jar FLUME_HOME_DIR/plugins.d/flume-kinesis/lib
 ```
 
 ## Configuration

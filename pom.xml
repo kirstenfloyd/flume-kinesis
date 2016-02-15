@@ -19,6 +19,12 @@
       <artifactId>amazon-kinesis-client</artifactId>
       <version>1.6.1</version>
     </dependency>
+    <!-- Force use of a version of httpcomponents that works with the aws library -->
+    <dependency>
+	    <groupId>org.apache.httpcomponents</groupId>
+	    <artifactId>httpclient</artifactId>
+	    <version>4.5.1</version>
+    </dependency>
   </dependencies>
 
   <scm>
@@ -50,13 +56,16 @@
               <goal>shade</goal>
             </goals>
             <configuration>
-              <artifactSet>
-                <excludes>
-                  <exclude>org.apache.flume:*</exclude>
-                  <exclude>org.apache.httpcomponents:*</exclude>
-                  <exclude>org.apache.httpcomponents:*</exclude>
-                </excludes>
-              </artifactSet>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                  </excludes>
+                </filter>
+              </filters>
               <minimizeJar>true</minimizeJar>
             </configuration>
           </execution>
