@@ -43,7 +43,7 @@ import com.amazonaws.services.kinesis.model.PutRecordsResult;
 import com.amazonaws.services.kinesis.model.PutRecordsResultEntry;
 
 public class KinesisSink extends AbstractSink implements Configurable {
-  
+
   private static final Log LOG = LogFactory.getLog(KinesisSink.class);
 
   private static final String DEFAULT_KINESIS_ENDPOINT = "https://kinesis.us-east-1.amazonaws.com";
@@ -52,6 +52,7 @@ public class KinesisSink extends AbstractSink implements Configurable {
   private static final int DEFAULT_MAX_ATTEMPTS = 100;
   private static final boolean DEFAULT_ROLLBACK_AFTER_MAX_ATTEMPTS = false;
   private static final long BACKOFF_TIME_IN_MILLIS = 100L;
+  private static final boolean DEFAULT_PARTITION_KEY_FROM_EVENT = false;
 
   private SinkCounter sinkCounter;
 
@@ -64,7 +65,8 @@ public class KinesisSink extends AbstractSink implements Configurable {
   private int batchSize;
   private int maxAttempts;
   private boolean rollbackAfterMaxAttempts;
-  
+  private boolean partitionKeyFromEvent;
+
   @Override
   public void configure(Context context) {
     this.endpoint = context.getString("endpoint", "https://kinesis.us-east-1.amazonaws.com");
@@ -89,6 +91,10 @@ public class KinesisSink extends AbstractSink implements Configurable {
 
     this.rollbackAfterMaxAttempts = context.getBoolean("rollbackAfterMaxAttempts", DEFAULT_ROLLBACK_AFTER_MAX_ATTEMPTS);
 
+    // If true, we will check each event's header for a key named... "key", if present, use this as the kinesis
+    // partitionKey, rather than randomly generating a partitionKey.
+    this.partitionKeyFromEvent = context.getBoolean("partitionKeyFromEvent", DEFAULT_PARTITION_KEY_FROM_EVENT);
+
     if (sinkCounter == null) {
       sinkCounter = new SinkCounter(getName());
     }
@@ -109,10 +115,11 @@ public class KinesisSink extends AbstractSink implements Configurable {
   @Override
   public Status process() throws EventDeliveryException {
     Status status = null;
-
+    //Get the channel associated with this Sink
     Channel ch = getChannel();
     Transaction txn = ch.getTransaction();
     List<PutRecordsRequestEntry> putRecordsRequestEntryList = Lists.newArrayList();
+    //Start the transaction
     txn.begin();
     try {
       int txnEventCount = 0;
@@ -120,6 +127,7 @@ public class KinesisSink extends AbstractSink implements Configurable {
       int failedTxnEventCount = 0;
 
       for (txnEventCount = 0; txnEventCount < batchSize; txnEventCount++) {
+        //Take an event from the channel
         Event event = ch.take();
         if (event == null) {
           break;
@@ -137,7 +145,7 @@ public class KinesisSink extends AbstractSink implements Configurable {
         }
 
         PutRecordsRequest putRecordsRequest = new PutRecordsRequest();
-        putRecordsRequest.setStreamName( this.streamName);
+        putRecordsRequest.setStreamName(this.streamName);
         putRecordsRequest.setRecords(putRecordsRequestEntryList);
 
         sinkCounter.addToEventDrainAttemptCount(putRecordsRequest.getRecords().size());
@@ -194,10 +202,19 @@ public class KinesisSink extends AbstractSink implements Configurable {
   }
 
   public PutRecordsRequestEntry buildRequestEntry(Event event) {
-    int partitionKey=new Random().nextInt(( numberOfPartitions - 1) + 1) + 1;
+    String partitionKey;
+    //If we are configured to get the partition key from the event, and the event has the header key "key", use it.
+    if (this.partitionKeyFromEvent && event.getHeaders().containsKey("key")) {
+      partitionKey = event.getHeaders().get("key");
+    } else { // Or.. a random one to evenly distribute messages across number of partitions configured
+      //int pk = new Random().nextInt();
+      int pk = new Random().nextInt(Integer.MAX_VALUE); //Technically this means we cant get Integer.MAXVALE, but this is just for sharding, so the distribution shouldnt be *too* bad
+      partitionKey = "pk_" + pk;
+    }
+    LOG.debug("partitionKey: "+partitionKey);
     PutRecordsRequestEntry entry = new PutRecordsRequestEntry();
     entry.setData(ByteBuffer.wrap(event.getBody()));
-    entry.setPartitionKey("partitionKey_"+partitionKey);
+    entry.setPartitionKey(partitionKey);
     return entry;
   }
 
