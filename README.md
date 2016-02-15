@@ -12,8 +12,8 @@ Forked from https://github.com/sharethrough/flume-kinesis (which was originally 
 ## Building and installation
 
 ```
-mvn compile assembly:single
-cp target/*.jar FLUME_HOME_DIR/lib
+mvn clean package
+cp target/flume-kinesis-{version}.jar FLUME_HOME_DIR/lib
 ```
 
 ## Configuration
