@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>flume-kinesis</groupId>
   <artifactId>flume-kinesis</artifactId>
-  <version>0.0.13-SNAPSHOT</version>
+  <version>0.0.14-SNAPSHOT</version>
   <dependencies>
     <dependency>
       <groupId>org.apache.flume</groupId>
@@ -21,9 +21,9 @@
     </dependency>
     <!-- Force use of a version of httpcomponents that works with the aws library -->
     <dependency>
-	    <groupId>org.apache.httpcomponents</groupId>
-	    <artifactId>httpclient</artifactId>
-	    <version>4.5.1</version>
+    	<groupId>org.apache.httpcomponents</groupId>
+    	<artifactId>httpclient</artifactId>
+    	<version>4.5.1</version>
     </dependency>
   </dependencies>
 
@@ -44,7 +44,6 @@
           <target>1.8</target>
         </configuration>
       </plugin>
-
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
@@ -56,6 +55,11 @@
               <goal>shade</goal>
             </goals>
             <configuration>
+              <artifactSet>
+                <includes>
+                  <include>*</include>
+                </includes>
+              </artifactSet>
               <filters>
                 <filter>
                   <artifact>*:*</artifact>
@@ -65,13 +69,24 @@
                     <exclude>META-INF/*.RSA</exclude>
                   </excludes>
                 </filter>
+                <filter> <!--Without this, minimiseJar will remove httpcomponents -->
+                  <artifact>org.apache.http*</artifact>
+                  <includes>
+                    <include>**</include>
+                  </includes>
+                </filter>
               </filters>
+              <relocations>
+                <relocation>
+                  <pattern>org.apache.http</pattern> <!-- Flume 1.6 ships with an older version of httpcomponents that doenst play nice with AWS libraries -->
+                  <shadedPattern>shaded.org.apache.http</shadedPattern>
+                </relocation>
+              </relocations>
               <minimizeJar>true</minimizeJar>
             </configuration>
           </execution>
         </executions>
       </plugin>
-
     </plugins>
   </build>
 </project>
