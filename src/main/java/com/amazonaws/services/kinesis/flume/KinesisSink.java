@@ -20,8 +20,6 @@ import java.nio.ByteBuffer;
 import java.util.Random;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Map;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -54,6 +52,7 @@ public class KinesisSink extends AbstractSink implements Configurable {
   private static final int DEFAULT_MAX_ATTEMPTS = 100;
   private static final boolean DEFAULT_ROLLBACK_AFTER_MAX_ATTEMPTS = false;
   private static final long BACKOFF_TIME_IN_MILLIS = 100L;
+  private static final boolean DEFAULT_PARTITION_KEY_FROM_EVENT = false;
 
   private SinkCounter sinkCounter;
 
@@ -66,6 +65,7 @@ public class KinesisSink extends AbstractSink implements Configurable {
   private int batchSize;
   private int maxAttempts;
   private boolean rollbackAfterMaxAttempts;
+  private boolean partitionKeyFromEvent;
 
   @Override
   public void configure(Context context) {
@@ -90,6 +90,10 @@ public class KinesisSink extends AbstractSink implements Configurable {
         "maxAttempts must be greater than 0");
 
     this.rollbackAfterMaxAttempts = context.getBoolean("rollbackAfterMaxAttempts", DEFAULT_ROLLBACK_AFTER_MAX_ATTEMPTS);
+
+    // If true, we will check each event's header for a key named... "key", if present, use this as the kinesis
+    // partitionKey, rather than randomly generating a partitionKey.
+    this.partitionKeyFromEvent = context.getBoolean("partitionKeyFromEvent", DEFAULT_PARTITION_KEY_FROM_EVENT);
 
     if (sinkCounter == null) {
       sinkCounter = new SinkCounter(getName());
@@ -141,7 +145,7 @@ public class KinesisSink extends AbstractSink implements Configurable {
         }
 
         PutRecordsRequest putRecordsRequest = new PutRecordsRequest();
-        putRecordsRequest.setStreamName( this.streamName);
+        putRecordsRequest.setStreamName(this.streamName);
         putRecordsRequest.setRecords(putRecordsRequestEntryList);
 
         sinkCounter.addToEventDrainAttemptCount(putRecordsRequest.getRecords().size());
@@ -199,8 +203,8 @@ public class KinesisSink extends AbstractSink implements Configurable {
 
   public PutRecordsRequestEntry buildRequestEntry(Event event) {
     String partitionKey;
-    // If there is a "key" on the event header, we will use this as the partition key,
-    if (event.getHeaders().containsKey("key")) {
+    //If we are configured to get the partition key from the event, and the event has the header key "key", use it.
+    if (this.partitionKeyFromEvent && event.getHeaders().containsKey("key")) {
       partitionKey = event.getHeaders().get("key");
     } else { // Or.. a random one to evenly distribute messages across number of partitions configured
       int pk = new Random().nextInt();
