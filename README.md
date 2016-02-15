@@ -3,11 +3,7 @@
 Amazon Kinesis Source and Sink for Apache Flume
 
 
-Forked from https://github.com/sharethrough/flume-kinesis (which was originally forked from: https://github.com/pdeyhim/flume-kinesis). Changes include:
-* Updated for latest versions of flume.
-* Uses newer AWS libraries
-* __Sink:__ Added option to get partition key from event headers
-* __Sink:__ Default partition logic will partition randomly across shards (updated the logic for choosing a partition key to more evenly distribute data across shards)
+Forked from: https://github.com/pdeyhim/flume-kinesis.
 
 ## Building and installation
 
