@@ -2,14 +2,14 @@
 
 Amazon Kinesis Source and Sink for Apache Flume
 
-This was originally forked from: https://github.com/pdeyhim/flume-kinesis.  This version is updated
-for newer version of the AWS API.
+
+Forked from: https://github.com/pdeyhim/flume-kinesis.
 
 ## Building and installation
 
 ```
-mvn compile assembly:single
-cp target/*.jar FLUME_HOME_DIR/lib
+mvn clean package
+cp target/flume-kinesis-{version}.jar FLUME_HOME_DIR/plugins.d/flume-kinesis/lib
 ```
 
 ## Configuration
@@ -39,3 +39,4 @@ Check the examples under `conf/` for specific examples.  All values without defa
 |batchSize|100|max number of events to send per API call to Kinesis.  Must be between 1 and 500.|
 |maxAttempts|100|max number of times to attempt to send events.  After this the batch will be considered failed.  Must be >= 1.|
 |rollbackAfterMaxAttempts|false|whether to roll back the flume transaction if events cannot be sent after max attempts|
+|partitionKeyFromEvent|false|When set to true, instead of randomly generating a partition key for each event, will instead use the "key" that is set in the event headers.|
