@@ -46,30 +46,22 @@ public class KinesisSink extends AbstractSink implements Configurable {
 
   private static final Log LOG = LogFactory.getLog(KinesisSink.class);
 
-  private static final String DEFAULT_KINESIS_ENDPOINT = "https://kinesis.us-east-1.amazonaws.com";
-  protected static final int DEFAULT_PARTITION_SIZE = 1;
-  protected static final int DEFAULT_BATCH_SIZE = 100;
-  protected static final int DEFAULT_MAX_ATTEMPTS = 100;
-  protected static final boolean DEFAULT_ROLLBACK_AFTER_MAX_ATTEMPTS = false;
-  protected static final long BACKOFF_TIME_IN_MILLIS = 100L;
-  protected static final boolean DEFAULT_PARTITION_KEY_FROM_EVENT = false;
-
   protected SinkCounter sinkCounter;
 
   static AmazonKinesisClient kinesisClient;
-  protected String accessKeyId;
-  protected String secretAccessKey;
-  protected String streamName;
-  protected String endpoint;
-  protected int numberOfPartitions;
-  protected int batchSize;
-  protected int maxAttempts;
-  protected boolean rollbackAfterMaxAttempts;
-  protected boolean partitionKeyFromEvent;
+  private String accessKeyId;
+  private String secretAccessKey;
+  private String streamName;
+  private String endpoint;
+  private int numberOfPartitions;
+  private int batchSize;
+  private int maxAttempts;
+  private boolean rollbackAfterMaxAttempts;
+  private boolean partitionKeyFromEvent;
 
   @Override
   public void configure(Context context) {
-    this.endpoint = context.getString("endpoint", "https://kinesis.us-east-1.amazonaws.com");
+    this.endpoint = context.getString("endpoint", ConfigurationConstants.DEFAULT_KINESIS_ENDPOINT);
     this.accessKeyId = Preconditions.checkNotNull(
         context.getString("accessKeyId"), "accessKeyId is required");
     this.secretAccessKey = Preconditions.checkNotNull(
@@ -77,23 +69,23 @@ public class KinesisSink extends AbstractSink implements Configurable {
     this.streamName = Preconditions.checkNotNull(
         context.getString("streamName"), "streamName is required");
 
-    this.numberOfPartitions = context.getInteger("numberOfPartitions", DEFAULT_PARTITION_SIZE);
+    this.numberOfPartitions = context.getInteger("numberOfPartitions", ConfigurationConstants.DEFAULT_PARTITION_SIZE);
     Preconditions.checkArgument(numberOfPartitions > 0,
         "numberOfPartitions must be greater than 0");
 
-    this.batchSize = context.getInteger("batchSize", DEFAULT_BATCH_SIZE);
+    this.batchSize = context.getInteger("batchSize", ConfigurationConstants.DEFAULT_BATCH_SIZE);
     Preconditions.checkArgument(batchSize > 0 && batchSize <= 500,
         "batchSize must be between 1 and 500");
 
-    this.maxAttempts = context.getInteger("maxAttempts", DEFAULT_MAX_ATTEMPTS);
+    this.maxAttempts = context.getInteger("maxAttempts", ConfigurationConstants.DEFAULT_MAX_ATTEMPTS);
     Preconditions.checkArgument(maxAttempts > 0,
         "maxAttempts must be greater than 0");
 
-    this.rollbackAfterMaxAttempts = context.getBoolean("rollbackAfterMaxAttempts", DEFAULT_ROLLBACK_AFTER_MAX_ATTEMPTS);
+    this.rollbackAfterMaxAttempts = context.getBoolean("rollbackAfterMaxAttempts", ConfigurationConstants.DEFAULT_ROLLBACK_AFTER_MAX_ATTEMPTS);
 
     // If true, we will check each event's header for a key named... "key", if present, use this as the kinesis
     // partitionKey, rather than randomly generating a partitionKey.
-    this.partitionKeyFromEvent = context.getBoolean("partitionKeyFromEvent", DEFAULT_PARTITION_KEY_FROM_EVENT);
+    this.partitionKeyFromEvent = context.getBoolean("partitionKeyFromEvent", ConfigurationConstants.DEFAULT_PARTITION_KEY_FROM_EVENT);
 
     if (sinkCounter == null) {
       sinkCounter = new SinkCounter(getName());
@@ -155,7 +147,7 @@ public class KinesisSink extends AbstractSink implements Configurable {
           LOG.warn("Failed to sink " + putRecordsResult.getFailedRecordCount() + " records on attempt " + attemptCount + " of " + maxAttempts);
 
           try {
-            Thread.sleep(BACKOFF_TIME_IN_MILLIS);
+            Thread.sleep(ConfigurationConstants.BACKOFF_TIME_IN_MILLIS);
           } catch (InterruptedException e) {
             LOG.debug("Interrupted sleep", e);
           }

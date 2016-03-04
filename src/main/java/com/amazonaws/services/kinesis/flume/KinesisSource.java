@@ -50,7 +50,6 @@ public class KinesisSource extends AbstractSource implements Configurable, Polla
   // Initial position in the stream when the application starts up for the first time.
   // Position can be one of LATEST (most recent data) or TRIM_HORIZON (oldest available data)
   private InitialPositionInStream DEFAULT_INITIAL_POSITION = InitialPositionInStream.TRIM_HORIZON;
-  private static final String DEFAULT_KINESIS_ENDPOINT = "https://kinesis.us-east-1.amazonaws.com";
 
   private KinesisClientLibConfiguration kinesisClientLibConfiguration;
   private String accessKeyId;
@@ -62,7 +61,7 @@ public class KinesisSource extends AbstractSource implements Configurable, Polla
 
   @Override
   public void configure(Context context) {
-    this.endpoint = context.getString("endpoint", DEFAULT_KINESIS_ENDPOINT);
+    this.endpoint = context.getString("endpoint", ConfigurationConstants.DEFAULT_KINESIS_ENDPOINT);
     this.accessKeyId = Preconditions.checkNotNull(
         context.getString("accessKeyId"), "accessKeyId is required");
     this.secretAccessKey = Preconditions.checkNotNull(
