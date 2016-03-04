@@ -47,25 +47,25 @@ public class KinesisSink extends AbstractSink implements Configurable {
   private static final Log LOG = LogFactory.getLog(KinesisSink.class);
 
   private static final String DEFAULT_KINESIS_ENDPOINT = "https://kinesis.us-east-1.amazonaws.com";
-  private static final int DEFAULT_PARTITION_SIZE = 1;
-  private static final int DEFAULT_BATCH_SIZE = 100;
-  private static final int DEFAULT_MAX_ATTEMPTS = 100;
-  private static final boolean DEFAULT_ROLLBACK_AFTER_MAX_ATTEMPTS = false;
-  private static final long BACKOFF_TIME_IN_MILLIS = 100L;
-  private static final boolean DEFAULT_PARTITION_KEY_FROM_EVENT = false;
+  protected static final int DEFAULT_PARTITION_SIZE = 1;
+  protected static final int DEFAULT_BATCH_SIZE = 100;
+  protected static final int DEFAULT_MAX_ATTEMPTS = 100;
+  protected static final boolean DEFAULT_ROLLBACK_AFTER_MAX_ATTEMPTS = false;
+  protected static final long BACKOFF_TIME_IN_MILLIS = 100L;
+  protected static final boolean DEFAULT_PARTITION_KEY_FROM_EVENT = false;
 
-  private SinkCounter sinkCounter;
+  protected SinkCounter sinkCounter;
 
   static AmazonKinesisClient kinesisClient;
-  private String accessKeyId;
-  private String secretAccessKey;
-  private String streamName;
-  private String endpoint;
-  private int numberOfPartitions;
-  private int batchSize;
-  private int maxAttempts;
-  private boolean rollbackAfterMaxAttempts;
-  private boolean partitionKeyFromEvent;
+  protected String accessKeyId;
+  protected String secretAccessKey;
+  protected String streamName;
+  protected String endpoint;
+  protected int numberOfPartitions;
+  protected int batchSize;
+  protected int maxAttempts;
+  protected boolean rollbackAfterMaxAttempts;
+  protected boolean partitionKeyFromEvent;
 
   @Override
   public void configure(Context context) {
