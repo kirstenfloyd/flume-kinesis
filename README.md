@@ -29,12 +29,26 @@ Check the examples under `conf/` for specific examples.  All values without defa
 
 ### Kinesis Sink Options
 
+Sinks for both Kinesis Streams as well as Kinesis Firehose are supported.  To specify the type of stream set the appropriate type in your configuration.
+
+For Kinesis Streams:
+```
+agent.sinks.kinesis.type = com.amazonaws.services.kinesis.flume.KinesisSink
+```
+
+For Kinesis Firehose:
+```
+agent.sinks.kinesis.type = com.amazonaws.services.kinesis.flume.FirehoseSink
+```
+
+Options for both are as follows:
+
 |Name|Default|Description|
 -------|-----------|-------------|
 |endpoint|https://kinesis.us-east-1.amazonaws.com|endpoint to access kinesis|
 |accessKeyId|null|AWS Access Key ID|
 |secretAccessKey|null|AWS Secret Access Key|
-|streamName|null|name of Kinesis stream|
+|streamName|null|name of Kinesis/Firehose stream|
 |numberOfPartitions|1|number of Kinesis partitions.  Set this much higher than actual number of shards to get better uniforimity when sinking across shards.|
 |batchSize|100|max number of events to send per API call to Kinesis.  Must be between 1 and 500.|
 |maxAttempts|100|max number of times to attempt to send events.  After this the batch will be considered failed.  Must be >= 1.|

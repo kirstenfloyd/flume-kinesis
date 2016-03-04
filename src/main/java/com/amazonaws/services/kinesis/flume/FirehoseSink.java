@@ -42,12 +42,54 @@ import com.amazonaws.services.kinesisfirehose.model.Record;
 import com.amazonaws.services.kinesisfirehose.model.PutRecordBatchResult;
 import com.amazonaws.services.kinesisfirehose.model.PutRecordBatchResponseEntry;
 
-public class FirehoseSink extends KinesisSink implements Configurable {
+public class FirehoseSink extends AbstractSink implements Configurable {
   private static final Log LOG = LogFactory.getLog(FirehoseSink.class);
 
-  private static final String DEFAULT_KINESIS_ENDPOINT = "https://firehose.us-east-1.amazonaws.com";
+  protected SinkCounter sinkCounter;
 
   static AmazonKinesisFirehoseClient kinesisClient;
+  private String accessKeyId;
+  private String secretAccessKey;
+  private String streamName;
+  private String endpoint;
+  private int numberOfPartitions;
+  private int batchSize;
+  private int maxAttempts;
+  private boolean rollbackAfterMaxAttempts;
+  private boolean partitionKeyFromEvent;
+
+  @Override
+  public void configure(Context context) {
+    this.endpoint = context.getString("endpoint", ConfigurationConstants.DEFAULT_FIREHOSE_ENDPOINT);
+    this.accessKeyId = Preconditions.checkNotNull(
+        context.getString("accessKeyId"), "accessKeyId is required");
+    this.secretAccessKey = Preconditions.checkNotNull(
+        context.getString("secretAccessKey"), "secretAccessKey is required");
+    this.streamName = Preconditions.checkNotNull(
+        context.getString("streamName"), "streamName is required");
+
+    this.numberOfPartitions = context.getInteger("numberOfPartitions", ConfigurationConstants.DEFAULT_PARTITION_SIZE);
+    Preconditions.checkArgument(numberOfPartitions > 0,
+        "numberOfPartitions must be greater than 0");
+
+    this.batchSize = context.getInteger("batchSize", ConfigurationConstants.DEFAULT_BATCH_SIZE);
+    Preconditions.checkArgument(batchSize > 0 && batchSize <= 500,
+        "batchSize must be between 1 and 500");
+
+    this.maxAttempts = context.getInteger("maxAttempts", ConfigurationConstants.DEFAULT_MAX_ATTEMPTS);
+    Preconditions.checkArgument(maxAttempts > 0,
+        "maxAttempts must be greater than 0");
+
+    this.rollbackAfterMaxAttempts = context.getBoolean("rollbackAfterMaxAttempts", ConfigurationConstants.DEFAULT_ROLLBACK_AFTER_MAX_ATTEMPTS);
+
+    // If true, we will check each event's header for a key named... "key", if present, use this as the kinesis
+    // partitionKey, rather than randomly generating a partitionKey.
+    this.partitionKeyFromEvent = context.getBoolean("partitionKeyFromEvent", ConfigurationConstants.DEFAULT_PARTITION_KEY_FROM_EVENT);
+
+    if (sinkCounter == null) {
+      sinkCounter = new SinkCounter(getName());
+    }
+  }
 
   @Override
   public void start() {
@@ -100,7 +142,7 @@ public class FirehoseSink extends KinesisSink implements Configurable {
           LOG.warn("Failed to sink " + putRecordsResult.getFailedPutCount() + " records on attempt " + attemptCount + " of " + maxAttempts);
 
           try {
-            Thread.sleep(BACKOFF_TIME_IN_MILLIS);
+            Thread.sleep(ConfigurationConstants.BACKOFF_TIME_IN_MILLIS);
           } catch (InterruptedException e) {
             LOG.debug("Interrupted sleep", e);
           }
