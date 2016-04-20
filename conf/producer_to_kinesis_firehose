@@ -9,10 +9,7 @@ node1.sources.netcat.port = 44444
 
 ## Sink
 node1.sinks.KinesisSink.type = com.amazonaws.services.kinesis.flume.FirehoseSink 
-node1.sinks.KinesisSink.accessKeyId =
-node1.sinks.KinesisSink.secretAccessKey =
-node1.sinks.KinesisSink.numberOfPartitions = 2
-node1.sinks.KinesisSink.streamName = mySecondLargeStream 
+node1.sinks.KinesisSink.streamName = mySecondLargeStream
 node1.sinks.KinesisSink.endpoint = https://firehose.us-east-1.amazonaws.com
 
 #i# Use a channel which buffers events in memory

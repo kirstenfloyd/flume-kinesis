@@ -9,9 +9,6 @@ node1.sources.netcat.port = 44444
 
 ## Sink
 node1.sinks.KinesisSink.type = com.amazonaws.services.kinesis.flume.KinesisSink
-node1.sinks.KinesisSink.accessKeyId =
-node1.sinks.KinesisSink.secretAccessKey =
-node1.sinks.KinesisSink.numberOfPartitions = 2
 node1.sinks.KinesisSink.streamName = mySecondLargeStream
 node1.sinks.KinesisSink.endpoint = https://kinesis.us-east-1.amazonaws.com
 

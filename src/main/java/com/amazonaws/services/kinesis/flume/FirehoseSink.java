@@ -20,6 +20,9 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.ArrayList;
 
+import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.services.kinesis.MyAwsCredentials;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
@@ -34,7 +37,6 @@ import org.apache.flume.conf.Configurable;
 import org.apache.flume.sink.AbstractSink;
 import org.apache.flume.instrumentation.SinkCounter;
 
-import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.kinesisfirehose.AmazonKinesisFirehoseClient;
 import com.amazonaws.services.kinesisfirehose.model.PutRecordBatchRequest;
 import com.amazonaws.services.kinesisfirehose.model.Record;
@@ -47,34 +49,36 @@ public class FirehoseSink extends AbstractSink implements Configurable {
   private SinkCounter sinkCounter;
 
   private static AmazonKinesisFirehoseClient kinesisClient;
-  private String accessKeyId;
-  private String secretAccessKey;
   private String streamName;
   private String endpoint;
   private int batchSize;
   private int maxAttempts;
   private boolean rollbackAfterMaxAttempts;
+  private AWSCredentialsProvider credentialsProvider;
 
   @Override
   public void configure(Context context) {
     this.endpoint = context.getString("endpoint", ConfigurationConstants.DEFAULT_FIREHOSE_ENDPOINT);
 
-    this.accessKeyId = Preconditions.checkNotNull(
-        context.getString("accessKeyId"), "accessKeyId is required");
+    String accessKeyId = context.getString("accessKeyId");
 
-    this.secretAccessKey = Preconditions.checkNotNull(
-        context.getString("secretAccessKey"), "secretAccessKey is required");
+    String secretAccessKey = context.getString("secretAccessKey");
+
+    if (accessKeyId != null && secretAccessKey != null) {
+      credentialsProvider = new MyAwsCredentials(accessKeyId, secretAccessKey);
+    } else {
+      credentialsProvider = new DefaultAWSCredentialsProviderChain();
+    }
 
     this.streamName = Preconditions.checkNotNull(
-        context.getString("streamName"), "streamName is required");
+      context.getString("streamName"), "streamName is required");
 
     this.batchSize = context.getInteger("batchSize", ConfigurationConstants.DEFAULT_BATCH_SIZE);
     Preconditions.checkArgument(batchSize > 0 && batchSize <= 500,
-        "batchSize must be between 1 and 500");
+      "batchSize must be between 1 and 500");
 
     this.maxAttempts = context.getInteger("maxAttempts", ConfigurationConstants.DEFAULT_MAX_ATTEMPTS);
-    Preconditions.checkArgument(maxAttempts > 0,
-        "maxAttempts must be greater than 0");
+    Preconditions.checkArgument(maxAttempts > 0, "maxAttempts must be greater than 0");
 
     this.rollbackAfterMaxAttempts = context.getBoolean("rollbackAfterMaxAttempts", ConfigurationConstants.DEFAULT_ROLLBACK_AFTER_MAX_ATTEMPTS);
 
@@ -85,7 +89,7 @@ public class FirehoseSink extends AbstractSink implements Configurable {
 
   @Override
   public void start() {
-    kinesisClient = new AmazonKinesisFirehoseClient(new BasicAWSCredentials(this.accessKeyId,this.secretAccessKey));
+    kinesisClient = new AmazonKinesisFirehoseClient(credentialsProvider);
     kinesisClient.setEndpoint(this.endpoint);
     sinkCounter.start();
   }
@@ -167,7 +171,7 @@ public class FirehoseSink extends AbstractSink implements Configurable {
       }
     } catch (Throwable t) {
       txn.rollback();
-      LOG.error("Failed to commit transaction. Transaction rolled back. ", t);
+      LOG.error("Failed to commit transaction. Transaction rolled back.", t);
       status = Status.BACKOFF;
       if (t instanceof Error) {
         throw (Error)t;

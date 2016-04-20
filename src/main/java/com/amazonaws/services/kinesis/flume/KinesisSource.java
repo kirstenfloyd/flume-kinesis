@@ -20,6 +20,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.UUID;
 
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.google.common.base.Preconditions;
 
 import org.apache.commons.logging.Log;
@@ -30,10 +31,8 @@ import org.apache.flume.PollableSource;
 import org.apache.flume.conf.Configurable;
 import org.apache.flume.source.AbstractSource;
 
-import com.amazonaws.AmazonClientException;
 import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.InstanceProfileCredentialsProvider;
-import com.amazonaws.services.kinesis.MyAwsCredential;
+import com.amazonaws.services.kinesis.MyAwsCredentials;
 import com.amazonaws.services.kinesis.RecordProcessorFactory;
 import com.amazonaws.services.kinesis.clientlibrary.interfaces.IRecordProcessorFactory;
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.InitialPositionInStream;
@@ -55,12 +54,6 @@ public class KinesisSource extends AbstractSource implements Configurable, Polla
   public void configure(Context context) {
     String endpoint = context.getString("endpoint", ConfigurationConstants.DEFAULT_KINESIS_ENDPOINT);
 
-    String accessKeyId = Preconditions.checkNotNull(
-        context.getString("accessKeyId"), "accessKeyId is required");
-
-    String secretAccessKey = Preconditions.checkNotNull(
-        context.getString("secretAccessKey"), "secretAccessKey is required");
-
     String streamName = Preconditions.checkNotNull(
         context.getString("streamName"), "streamName is required");
 
@@ -68,27 +61,22 @@ public class KinesisSource extends AbstractSource implements Configurable, Polla
         context.getString("applicationName"), "applicationName is required");
 
     String initialPosition = context.getString("initialPosition", "TRIM_HORIZON");
-    String workerId=null;
+    String workerId = null;
 
-    if (initialPosition.equals("LATEST")){
+    if (initialPosition.equals("LATEST")) {
       DEFAULT_INITIAL_POSITION=InitialPositionInStream.LATEST;
     }
 
+    String accessKeyId = context.getString("accessKeyId");
+
+    String secretAccessKey = context.getString("secretAccessKey");
+
     AWSCredentialsProvider credentialsProvider;
-    try {
 
-      credentialsProvider = new InstanceProfileCredentialsProvider();
-      // Verify we can fetch credentials from the provider
-      credentialsProvider.getCredentials();
-      LOG.info("Obtained credentials from the IMDS.");
-
-    } catch (AmazonClientException e) {
-      LOG.info("Unable to obtain credentials from the IMDS, trying classpath properties", e);
-
-      credentialsProvider = new MyAwsCredential(accessKeyId, secretAccessKey);
-      credentialsProvider.getCredentials();
-
-      LOG.info("Obtained credentials from the properties file.");
+    if (accessKeyId != null && secretAccessKey != null) {
+      credentialsProvider = new MyAwsCredentials(accessKeyId, secretAccessKey);
+    } else {
+      credentialsProvider = new DefaultAWSCredentialsProviderChain();
     }
 
     try {
@@ -122,7 +110,7 @@ public class KinesisSource extends AbstractSource implements Configurable, Polla
   }
 
   @Override
-  public void stop () {
+  public void stop() {
   }
 
   @Override
