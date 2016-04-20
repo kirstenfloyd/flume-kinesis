@@ -33,7 +33,6 @@ import org.apache.flume.source.AbstractSource;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.InstanceProfileCredentialsProvider;
-import com.amazonaws.services.kinesis.AmazonKinesisClient;
 import com.amazonaws.services.kinesis.MyAwsCredential;
 import com.amazonaws.services.kinesis.RecordProcessorFactory;
 import com.amazonaws.services.kinesis.clientlibrary.interfaces.IRecordProcessorFactory;
@@ -43,42 +42,39 @@ import com.amazonaws.services.kinesis.clientlibrary.lib.worker.Worker;
  
 public class KinesisSource extends AbstractSource implements Configurable, PollableSource {
 
-  static AmazonKinesisClient kinesisClient;
   private static final Log LOG = LogFactory.getLog(KinesisSource.class);
-  Worker worker;
+  private Worker worker;
 
   // Initial position in the stream when the application starts up for the first time.
   // Position can be one of LATEST (most recent data) or TRIM_HORIZON (oldest available data)
   private InitialPositionInStream DEFAULT_INITIAL_POSITION = InitialPositionInStream.TRIM_HORIZON;
 
   private KinesisClientLibConfiguration kinesisClientLibConfiguration;
-  private String accessKeyId;
-  private String secretAccessKey;
-  private String streamName;
-  private String applicationName;
-  private String endpoint;
-  private String initialPosition;
 
   @Override
   public void configure(Context context) {
-    this.endpoint = context.getString("endpoint", ConfigurationConstants.DEFAULT_KINESIS_ENDPOINT);
-    this.accessKeyId = Preconditions.checkNotNull(
+    String endpoint = context.getString("endpoint", ConfigurationConstants.DEFAULT_KINESIS_ENDPOINT);
+
+    String accessKeyId = Preconditions.checkNotNull(
         context.getString("accessKeyId"), "accessKeyId is required");
-    this.secretAccessKey = Preconditions.checkNotNull(
+
+    String secretAccessKey = Preconditions.checkNotNull(
         context.getString("secretAccessKey"), "secretAccessKey is required");
-    this.streamName = Preconditions.checkNotNull(
+
+    String streamName = Preconditions.checkNotNull(
         context.getString("streamName"), "streamName is required");
-    this.applicationName = Preconditions.checkNotNull(
+
+    String applicationName = Preconditions.checkNotNull(
         context.getString("applicationName"), "applicationName is required");
 
-    this.initialPosition = context.getString("initialPosition", "TRIM_HORIZON");
+    String initialPosition = context.getString("initialPosition", "TRIM_HORIZON");
     String workerId=null;
 
-    if (this.initialPosition.equals("LATEST")){
+    if (initialPosition.equals("LATEST")){
       DEFAULT_INITIAL_POSITION=InitialPositionInStream.LATEST;
     }
 
-    AWSCredentialsProvider credentialsProvider = null;
+    AWSCredentialsProvider credentialsProvider;
     try {
 
       credentialsProvider = new InstanceProfileCredentialsProvider();
@@ -89,7 +85,7 @@ public class KinesisSource extends AbstractSource implements Configurable, Polla
     } catch (AmazonClientException e) {
       LOG.info("Unable to obtain credentials from the IMDS, trying classpath properties", e);
 
-      credentialsProvider = new MyAwsCredential(this.accessKeyId,this.secretAccessKey);
+      credentialsProvider = new MyAwsCredential(accessKeyId, secretAccessKey);
       credentialsProvider.getCredentials();
 
       LOG.info("Obtained credentials from the properties file.");
@@ -103,9 +99,9 @@ public class KinesisSource extends AbstractSource implements Configurable, Polla
 
     LOG.info("Using workerId: " + workerId);
 
-    kinesisClientLibConfiguration = new KinesisClientLibConfiguration(this.applicationName, this.streamName,
+    kinesisClientLibConfiguration = new KinesisClientLibConfiguration(applicationName, streamName,
         credentialsProvider, workerId).
-        withKinesisEndpoint(this.endpoint).
+        withKinesisEndpoint(endpoint).
         withInitialPositionInStream(DEFAULT_INITIAL_POSITION);
 
   }

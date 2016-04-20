@@ -20,8 +20,8 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 
 public class MyAwsCredential implements AWSCredentialsProvider{
-  String accessKey;
-  String accessSecretKey;
+  private String accessKey;
+  private String accessSecretKey;
 
   public MyAwsCredential(String accessKey,String accessSecretKey){
     this.accessKey = accessKey;
