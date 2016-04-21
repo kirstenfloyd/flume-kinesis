@@ -20,7 +20,7 @@ import com.amazonaws.services.kinesis.clientlibrary.interfaces.IRecordProcessor;
 import com.amazonaws.services.kinesis.clientlibrary.interfaces.IRecordProcessorFactory;
 
 public class RecordProcessorFactory implements IRecordProcessorFactory {
-  ChannelProcessor chProcessor;
+  private ChannelProcessor chProcessor;
 
   public RecordProcessorFactory(ChannelProcessor channelProcessor) {
     super();

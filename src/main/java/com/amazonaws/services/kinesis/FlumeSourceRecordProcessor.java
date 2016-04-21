@@ -36,7 +36,7 @@ import com.amazonaws.services.kinesis.clientlibrary.interfaces.IRecordProcessorC
 import com.amazonaws.services.kinesis.clientlibrary.types.ShutdownReason;
 import com.amazonaws.services.kinesis.model.Record;
 
-public class FlumeSourceRecordProcessor implements IRecordProcessor {
+class FlumeSourceRecordProcessor implements IRecordProcessor {
   private static final Log LOG = LogFactory.getLog(FlumeSourceRecordProcessor.class);
   private String kinesisShardId;
 
@@ -50,8 +50,8 @@ public class FlumeSourceRecordProcessor implements IRecordProcessor {
     
   private final CharsetDecoder decoder = Charset.forName("UTF-8").newDecoder();
     
-  ChannelProcessor chProcessor;
-  public FlumeSourceRecordProcessor(ChannelProcessor chProcessor) {
+  private ChannelProcessor chProcessor;
+  FlumeSourceRecordProcessor(ChannelProcessor chProcessor) {
     super();
     this.chProcessor = chProcessor;
   }
@@ -76,14 +76,14 @@ public class FlumeSourceRecordProcessor implements IRecordProcessor {
   }
 
   /** Process records performing retries as needed. Skip "poison pill" records.
-   * @param records
+   * @param records list of records to process
    */
   private void processRecordsWithRetries(List<Record> records) {
     
     Event event;
     Map<String, String> headers;
  
-    ArrayList<Event> eventList=new ArrayList<Event>();
+    ArrayList<Event> eventList=new ArrayList<>();
         
     for (Record record : records) {
       boolean processedSuccessfully = false;
@@ -91,7 +91,7 @@ public class FlumeSourceRecordProcessor implements IRecordProcessor {
       for (int i = 0; i < NUM_RETRIES; i++) {
         try {
           event = new SimpleEvent();
-          headers = new HashMap<String, String>();
+          headers = new HashMap<>();
           headers.put("timestamp", String.valueOf(System.currentTimeMillis()));
           String data = decoder.decode(record.getData()).toString();
           LOG.info(record.getSequenceNumber() + ", " + record.getPartitionKey()+":"+data);
@@ -136,7 +136,7 @@ public class FlumeSourceRecordProcessor implements IRecordProcessor {
   }
 
   /** Checkpoint with retries.
-   * @param checkpointer
+   * @param checkpointer user implementation to handle checkpointing location in stream
    */
   private void checkpoint(IRecordProcessorCheckpointer checkpointer) {
     LOG.info("Checkpointing shard " + kinesisShardId);

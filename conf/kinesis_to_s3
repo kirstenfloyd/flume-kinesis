@@ -4,8 +4,6 @@ node1.channels = diskchannel
 
 ## Source
 node1.sources.KinesisSource.type = com.amazonaws.services.kinesis.flume.KinesisSource
-node1.sources.KinesisSource.accessKeyId =
-node1.sources.KinesisSource.secretAccessKey =
 node1.sources.KinesisSource.applicationName = FlumeSource
 node1.sources.KinesisSource.streamName = myLargeStream
 node1.sources.KinesisSource.initialPosition = TRIM_HORIZON

@@ -21,6 +21,9 @@ import java.util.Random;
 import java.util.List;
 import java.util.ArrayList;
 
+import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.services.kinesis.MyAwsCredentials;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
@@ -35,7 +38,6 @@ import org.apache.flume.conf.Configurable;
 import org.apache.flume.sink.AbstractSink;
 import org.apache.flume.instrumentation.SinkCounter;
 
-import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.kinesis.AmazonKinesisClient;
 import com.amazonaws.services.kinesis.model.PutRecordsRequest;
 import com.amazonaws.services.kinesis.model.PutRecordsRequestEntry;
@@ -46,40 +48,40 @@ public class KinesisSink extends AbstractSink implements Configurable {
 
   private static final Log LOG = LogFactory.getLog(KinesisSink.class);
 
-  protected SinkCounter sinkCounter;
+  private SinkCounter sinkCounter;
 
-  static AmazonKinesisClient kinesisClient;
-  private String accessKeyId;
-  private String secretAccessKey;
+  private static AmazonKinesisClient kinesisClient;
   private String streamName;
   private String endpoint;
-  private int numberOfPartitions;
   private int batchSize;
   private int maxAttempts;
   private boolean rollbackAfterMaxAttempts;
   private boolean partitionKeyFromEvent;
+  private AWSCredentialsProvider credentialsProvider;
 
   @Override
   public void configure(Context context) {
     this.endpoint = context.getString("endpoint", ConfigurationConstants.DEFAULT_KINESIS_ENDPOINT);
-    this.accessKeyId = Preconditions.checkNotNull(
-        context.getString("accessKeyId"), "accessKeyId is required");
-    this.secretAccessKey = Preconditions.checkNotNull(
-        context.getString("secretAccessKey"), "secretAccessKey is required");
-    this.streamName = Preconditions.checkNotNull(
-        context.getString("streamName"), "streamName is required");
 
-    this.numberOfPartitions = context.getInteger("numberOfPartitions", ConfigurationConstants.DEFAULT_PARTITION_SIZE);
-    Preconditions.checkArgument(numberOfPartitions > 0,
-        "numberOfPartitions must be greater than 0");
+    String accessKeyId = context.getString("accessKeyId");
+
+    String secretAccessKey = context.getString("secretAccessKey");
+
+    if (accessKeyId != null && secretAccessKey != null) {
+      credentialsProvider = new MyAwsCredentials(accessKeyId, secretAccessKey);
+    } else {
+      credentialsProvider = new DefaultAWSCredentialsProviderChain();
+    }
+
+    this.streamName = Preconditions.checkNotNull(
+      context.getString("streamName"), "streamName is required");
 
     this.batchSize = context.getInteger("batchSize", ConfigurationConstants.DEFAULT_BATCH_SIZE);
     Preconditions.checkArgument(batchSize > 0 && batchSize <= 500,
-        "batchSize must be between 1 and 500");
+      "batchSize must be between 1 and 500");
 
     this.maxAttempts = context.getInteger("maxAttempts", ConfigurationConstants.DEFAULT_MAX_ATTEMPTS);
-    Preconditions.checkArgument(maxAttempts > 0,
-        "maxAttempts must be greater than 0");
+    Preconditions.checkArgument(maxAttempts > 0, "maxAttempts must be greater than 0");
 
     this.rollbackAfterMaxAttempts = context.getBoolean("rollbackAfterMaxAttempts", ConfigurationConstants.DEFAULT_ROLLBACK_AFTER_MAX_ATTEMPTS);
 
@@ -94,13 +96,13 @@ public class KinesisSink extends AbstractSink implements Configurable {
 
   @Override
   public void start() {
-    kinesisClient = new AmazonKinesisClient(new BasicAWSCredentials(this.accessKeyId,this.secretAccessKey));
+    kinesisClient = new AmazonKinesisClient(credentialsProvider);
     kinesisClient.setEndpoint(this.endpoint);
     sinkCounter.start();
   }
 
   @Override
-  public void stop () {
+  public void stop() {
     sinkCounter.stop();
   }
 
@@ -114,7 +116,7 @@ public class KinesisSink extends AbstractSink implements Configurable {
     //Start the transaction
     txn.begin();
     try {
-      int txnEventCount = 0;
+      int txnEventCount;
       int attemptCount = 1;
       int failedTxnEventCount = 0;
 
@@ -180,7 +182,7 @@ public class KinesisSink extends AbstractSink implements Configurable {
       }
     } catch (Throwable t) {
       txn.rollback();
-      LOG.error("Failed to commit transaction. Transaction rolled back. ", t);
+      LOG.error("Failed to commit transaction. Transaction rolled back.", t);
       status = Status.BACKOFF;
       if (t instanceof Error) {
         throw (Error)t;
@@ -193,15 +195,12 @@ public class KinesisSink extends AbstractSink implements Configurable {
     return status;
   }
 
-  public PutRecordsRequestEntry buildRequestEntry(Event event) {
+  private PutRecordsRequestEntry buildRequestEntry(Event event) {
     String partitionKey;
-    //If we are configured to get the partition key from the event, and the event has the header key "key", use it.
     if (this.partitionKeyFromEvent && event.getHeaders().containsKey("key")) {
       partitionKey = event.getHeaders().get("key");
-    } else { // Or.. a random one to evenly distribute messages across number of partitions configured
-      //int pk = new Random().nextInt();
-      int pk = new Random().nextInt(Integer.MAX_VALUE); //Technically this means we cant get Integer.MAXVALE, but this is just for sharding, so the distribution shouldnt be *too* bad
-      partitionKey = "pk_" + pk;
+    } else {
+      partitionKey = "pk_" + new Random().nextInt(Integer.MAX_VALUE);
     }
     LOG.debug("partitionKey: "+partitionKey);
     PutRecordsRequestEntry entry = new PutRecordsRequestEntry();
@@ -210,7 +209,7 @@ public class KinesisSink extends AbstractSink implements Configurable {
     return entry;
   }
 
-  public List<PutRecordsRequestEntry> getFailedRecordsFromResult(PutRecordsResult putRecordsResult, List<PutRecordsRequestEntry> putRecordsRequestEntryList) {
+  private List<PutRecordsRequestEntry> getFailedRecordsFromResult(PutRecordsResult putRecordsResult, List<PutRecordsRequestEntry> putRecordsRequestEntryList) {
     List<PutRecordsRequestEntry> failedRecordsList = new ArrayList<>();
     List<PutRecordsResultEntry> putRecordsResultEntryList = putRecordsResult.getRecords();
 
