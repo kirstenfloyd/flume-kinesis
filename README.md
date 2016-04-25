@@ -12,6 +12,11 @@ mvn clean package
 cp target/flume-kinesis-{version}.jar FLUME_HOME_DIR/plugins.d/flume-kinesis/lib
 ```
 
+You can set the JVM version via property settings:
+```
+mvn -DsourceJavaVersion=1.8 -DtargetJavaVersion=1.8 package
+```
+
 ## Configuration
 
 Check the examples under `conf/` for specific examples.

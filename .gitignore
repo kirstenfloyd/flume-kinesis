@@ -4,3 +4,4 @@ dependency-reduced-pom.xml
 .idea
 *.iml
 .vagrant
+.DS_Store
