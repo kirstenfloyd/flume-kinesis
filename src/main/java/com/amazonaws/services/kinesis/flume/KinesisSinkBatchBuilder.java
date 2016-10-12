@@ -8,7 +8,6 @@ import org.apache.flume.Channel;
 import org.apache.flume.Event;
 
 import java.nio.ByteBuffer;
-import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
@@ -19,7 +18,6 @@ public class KinesisSinkBatchBuilder {
   private int maxBatchByteSize;
   private int maxEventSize;
   private boolean usePartitionKeyFromEvent;
-  private Event carryOver;
 
   public KinesisSinkBatchBuilder(
     int batchSize,
@@ -33,17 +31,20 @@ public class KinesisSinkBatchBuilder {
     this.maxEventSize = maxEventSize;
   }
 
-  List<PutRecordsRequestEntry> buildBatch(Channel ch) {
+  KinesisRecordsBatch buildBatch(Channel ch) {
     if (ch == null) {
-      LOG.debug("Channel was null");
-      return Collections.emptyList();
+      LOG.error("Channel was null");
+      return KinesisRecordsBatch.EMPTY_RECORDS;
     }
 
     List<PutRecordsRequestEntry> putRecordsRequestEntryList = Lists.newArrayList();
+    PutRecordsRequestEntry spillOverRecord = null;
     int currBatchByteSize = 0;
 
+
     while (putRecordsRequestEntryList.size() < batchSize) {
-      Event event = getNextEvent(ch);
+      //Take an event from the channel
+      Event event = ch.take();
 
       if (event == null) {
         break;
@@ -52,33 +53,23 @@ public class KinesisSinkBatchBuilder {
       int currEventSize = event.getBody().length;
 
       if (isOverEventSizeLimit(currEventSize)) {
-        //drop message
+        LOG.warn(String.format(
+          "Dropping an event of size %s, max event size is %s bytes", currEventSize, maxEventSize));
         continue;
       }
 
+      PutRecordsRequestEntry entry = buildRequestEntry(event);
       if (isWithinSizeLimit(currEventSize, currBatchByteSize)) {
-        PutRecordsRequestEntry entry = buildRequestEntry(event);
         putRecordsRequestEntryList.add(entry);
         currBatchByteSize += currEventSize;
       } else {
-        carryOver = event;
+        //The event is taken out of the channel but does not fit within this batch
+        spillOverRecord = entry;
         break;
       }
     }
 
-    return putRecordsRequestEntryList;
-  }
-
-  private Event getNextEvent(Channel ch) {
-    Event event;
-    if (carryOver != null) {
-      event = carryOver;
-      carryOver = null;
-    } else {
-      //Take an event from the channel
-      event = ch.take();
-    }
-    return event;
+    return new KinesisRecordsBatch(putRecordsRequestEntryList, spillOverRecord);
   }
 
   private boolean isWithinSizeLimit(int currEventSize, int currBatchByteSize) {

@@ -10,6 +10,8 @@ import java.nio.charset.Charset;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.*;
 
 public class KinesisSinkBatchBuilderTest {
@@ -21,7 +23,8 @@ public class KinesisSinkBatchBuilderTest {
     public void testWithNullChannel() {
       KinesisSinkBatchBuilder batchBuilder = new KinesisSinkBatchBuilder(
         0, ConfigurationConstants.MAX_BATCH_BYTE_SIZE, ConfigurationConstants.MAX_EVENT_SIZE, false);
-      List<PutRecordsRequestEntry> batch = batchBuilder.buildBatch(null);
+      KinesisRecordsBatch recordsBatch = batchBuilder.buildBatch(null);
+      List<PutRecordsRequestEntry> batch = recordsBatch.getBatch();
 
       assertEquals("return no items when channel was null", 0, batch.size());
     }
@@ -32,7 +35,8 @@ public class KinesisSinkBatchBuilderTest {
 
       KinesisSinkBatchBuilder batchBuilder = new KinesisSinkBatchBuilder(
         0, ConfigurationConstants.MAX_BATCH_BYTE_SIZE, ConfigurationConstants.MAX_EVENT_SIZE, false);
-      List<PutRecordsRequestEntry> batch = batchBuilder.buildBatch(mockChannel);
+      KinesisRecordsBatch recordsBatch = batchBuilder.buildBatch(mockChannel);
+      List<PutRecordsRequestEntry> batch = recordsBatch.getBatch();
 
       assertEquals("return no items with batch size of 0", 0, batch.size());
       verify(mockChannel, times(0)).take();
@@ -45,10 +49,12 @@ public class KinesisSinkBatchBuilderTest {
 
       KinesisSinkBatchBuilder batchBuilder = new KinesisSinkBatchBuilder(
       2, ConfigurationConstants.MAX_BATCH_BYTE_SIZE, ConfigurationConstants.MAX_EVENT_SIZE, false);
-      List<PutRecordsRequestEntry> batch = batchBuilder.buildBatch(mockChannel);
+      KinesisRecordsBatch recordsBatch = batchBuilder.buildBatch(mockChannel);
+      List<PutRecordsRequestEntry> batch = recordsBatch.getBatch();
 
       assertEquals("returns batch size number of items when available",
         2, batch.size());
+      assertFalse(recordsBatch.hasSpillOverEvent());
       verify(mockChannel, times(2)).take();
     }
 
@@ -61,10 +67,12 @@ public class KinesisSinkBatchBuilderTest {
 
       KinesisSinkBatchBuilder batchBuilder = new KinesisSinkBatchBuilder(
         2, ConfigurationConstants.MAX_BATCH_BYTE_SIZE, ConfigurationConstants.MAX_EVENT_SIZE, false);
-      List<PutRecordsRequestEntry> batch = batchBuilder.buildBatch(mockChannel);
+      KinesisRecordsBatch recordsBatch = batchBuilder.buildBatch(mockChannel);
+      List<PutRecordsRequestEntry> batch = recordsBatch.getBatch();
 
-      assertEquals("returns availble items when batch size is higher",
+      assertEquals("returns available items when batch size is higher",
         1, batch.size());
+      assertFalse(recordsBatch.hasSpillOverEvent());
       verify(mockChannel, times(2)).take();
     }
 
@@ -74,7 +82,8 @@ public class KinesisSinkBatchBuilderTest {
 
     KinesisSinkBatchBuilder batchBuilder = new KinesisSinkBatchBuilder(
             ConfigurationConstants.DEFAULT_BATCH_SIZE, 0, ConfigurationConstants.MAX_EVENT_SIZE, false);
-    List<PutRecordsRequestEntry> batch = batchBuilder.buildBatch(mockChannel);
+    KinesisRecordsBatch recordsBatch = batchBuilder.buildBatch(mockChannel);
+    List<PutRecordsRequestEntry> batch = recordsBatch.getBatch();
 
     assertEquals("return no items with batch byte size of 0", 0, batch.size());
     verify(mockChannel, times(1)).take();
@@ -92,10 +101,12 @@ public class KinesisSinkBatchBuilderTest {
     int maxBatchByteSize = eventPayload.length() * 2;
     KinesisSinkBatchBuilder batchBuilder = new KinesisSinkBatchBuilder(
             ConfigurationConstants.DEFAULT_BATCH_SIZE, maxBatchByteSize, ConfigurationConstants.MAX_EVENT_SIZE, false);
-    List<PutRecordsRequestEntry> batch = batchBuilder.buildBatch(mockChannel);
+    KinesisRecordsBatch recordsBatch = batchBuilder.buildBatch(mockChannel);
+    List<PutRecordsRequestEntry> batch = recordsBatch.getBatch();
 
     assertEquals("returns items with batch size = maxBatchByteSize",
             2, batch.size());
+    assertTrue(recordsBatch.hasSpillOverEvent());
     verify(mockChannel, times(3)).take();
   }
 
@@ -110,36 +121,13 @@ public class KinesisSinkBatchBuilderTest {
     int maxBatchByteSize = eventPayload.length() * 2 - 1;
     KinesisSinkBatchBuilder batchBuilder = new KinesisSinkBatchBuilder(
             ConfigurationConstants.DEFAULT_BATCH_SIZE, maxBatchByteSize, ConfigurationConstants.MAX_EVENT_SIZE, false);
-    List<PutRecordsRequestEntry> batch = batchBuilder.buildBatch(mockChannel);
+    KinesisRecordsBatch recordsBatch = batchBuilder.buildBatch(mockChannel);
+    List<PutRecordsRequestEntry> batch = recordsBatch.getBatch();
 
     assertEquals("returns items with batch size = maxBatchByteSize",
             1, batch.size());
+    assertTrue(recordsBatch.hasSpillOverEvent());
     verify(mockChannel, times(2)).take();
-  }
-
-  @Test
-  public void testGetsCarryOverEventInNextCall() {
-    Channel mockChannel = mock(Channel.class);
-    when(mockChannel.take())
-            .thenReturn(mockEvent)
-            .thenReturn(mockEvent)
-            .thenReturn(mockEvent)
-            .thenReturn(mockEvent)
-            .thenReturn(null);
-
-    int maxBatchByteSize = eventPayload.length() * 2;
-    KinesisSinkBatchBuilder batchBuilder = new KinesisSinkBatchBuilder(
-            ConfigurationConstants.DEFAULT_BATCH_SIZE, maxBatchByteSize, ConfigurationConstants.MAX_EVENT_SIZE, false);
-
-    List<PutRecordsRequestEntry> batch = batchBuilder.buildBatch(mockChannel);
-    assertEquals("returns items with batch size = maxBatchByteSize",
-            2, batch.size());
-    verify(mockChannel, times(3)).take();
-
-    batch = batchBuilder.buildBatch(mockChannel);
-    assertEquals("returns items with batch size = maxBatchByteSize",
-            2, batch.size());
-    verify(mockChannel, times(5)).take();
   }
 
   @Test
@@ -157,10 +145,12 @@ public class KinesisSinkBatchBuilderTest {
     int maxEventSize = eventPayload.length();
     KinesisSinkBatchBuilder batchBuilder = new KinesisSinkBatchBuilder(
             2, ConfigurationConstants.MAX_BATCH_BYTE_SIZE, maxEventSize, false);
-    List<PutRecordsRequestEntry> batch = batchBuilder.buildBatch(mockChannel);
+    KinesisRecordsBatch recordsBatch = batchBuilder.buildBatch(mockChannel);
+    List<PutRecordsRequestEntry> batch = recordsBatch.getBatch();
 
     assertEquals("returns availble items when batch size is higher",
             1, batch.size());
+    assertFalse(recordsBatch.hasSpillOverEvent());
     verify(mockChannel, times(3)).take();
   }
 
