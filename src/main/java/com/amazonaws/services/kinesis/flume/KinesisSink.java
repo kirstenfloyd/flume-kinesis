@@ -58,6 +58,7 @@ public class KinesisSink extends AbstractSink implements Configurable {
   private boolean rollbackAfterMaxAttempts;
   private boolean partitionKeyFromEvent;
   private AWSCredentialsProvider credentialsProvider;
+  private KinesisSinkBatchBuilder batchBuilder;
 
   @Override
   public void configure(Context context) {
@@ -92,6 +93,10 @@ public class KinesisSink extends AbstractSink implements Configurable {
     if (sinkCounter == null) {
       sinkCounter = new SinkCounter(getName());
     }
+
+    if (batchBuilder == null) {
+      batchBuilder = new KinesisSinkBatchBuilder(batchSize, partitionKeyFromEvent);
+    }
   }
 
   @Override
@@ -112,23 +117,14 @@ public class KinesisSink extends AbstractSink implements Configurable {
     //Get the channel associated with this Sink
     Channel ch = getChannel();
     Transaction txn = ch.getTransaction();
-    List<PutRecordsRequestEntry> putRecordsRequestEntryList = Lists.newArrayList();
     //Start the transaction
     txn.begin();
     try {
-      int txnEventCount;
       int attemptCount = 1;
       int failedTxnEventCount = 0;
 
-      for (txnEventCount = 0; txnEventCount < batchSize; txnEventCount++) {
-        //Take an event from the channel
-        Event event = ch.take();
-        if (event == null) {
-          break;
-        }
-        PutRecordsRequestEntry entry = buildRequestEntry(event);
-        putRecordsRequestEntryList.add(entry);
-      }
+      List<PutRecordsRequestEntry> putRecordsRequestEntryList = batchBuilder.buildBatch(ch);
+      int txnEventCount = putRecordsRequestEntryList.size();
 
       if (txnEventCount > 0) {
         if (txnEventCount == batchSize) {
@@ -193,20 +189,6 @@ public class KinesisSink extends AbstractSink implements Configurable {
       txn.close();
     }
     return status;
-  }
-
-  private PutRecordsRequestEntry buildRequestEntry(Event event) {
-    String partitionKey;
-    if (this.partitionKeyFromEvent && event.getHeaders().containsKey("key")) {
-      partitionKey = event.getHeaders().get("key");
-    } else {
-      partitionKey = "pk_" + new Random().nextInt(Integer.MAX_VALUE);
-    }
-    LOG.debug("partitionKey: "+partitionKey);
-    PutRecordsRequestEntry entry = new PutRecordsRequestEntry();
-    entry.setData(ByteBuffer.wrap(event.getBody()));
-    entry.setPartitionKey(partitionKey);
-    return entry;
   }
 
   private List<PutRecordsRequestEntry> getFailedRecordsFromResult(PutRecordsResult putRecordsResult, List<PutRecordsRequestEntry> putRecordsRequestEntryList) {
