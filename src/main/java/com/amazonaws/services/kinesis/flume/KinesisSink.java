@@ -16,8 +16,6 @@ package com.amazonaws.services.kinesis.flume;
  * permissions and limitations under the License.
  */
 
-import java.nio.ByteBuffer;
-import java.util.Random;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -42,8 +40,6 @@ import com.amazonaws.services.kinesis.model.PutRecordsRequestEntry;
 import com.amazonaws.services.kinesis.model.PutRecordsResult;
 import com.amazonaws.services.kinesis.model.PutRecordsResultEntry;
 
-import static com.amazonaws.services.kinesis.flume.KinesisSinkBatchBuilder.*;
-
 public class KinesisSink extends AbstractSink implements Configurable {
 
   private static final Log LOG = LogFactory.getLog(KinesisSink.class);
@@ -54,6 +50,8 @@ public class KinesisSink extends AbstractSink implements Configurable {
   private String streamName;
   private String endpoint;
   private int batchSize;
+  private int maximumBatchSizeInBytes;
+  private int maximumEventSizeInBytes;
   private int maxAttempts;
   private boolean rollbackAfterMaxAttempts;
   private boolean partitionKeyFromEvent;
@@ -78,7 +76,7 @@ public class KinesisSink extends AbstractSink implements Configurable {
       context.getString("streamName"), "streamName is required");
 
     this.batchSize = context.getInteger("batchSize", ConfigurationConstants.DEFAULT_BATCH_SIZE);
-    Preconditions.checkArgument(batchSize > 0 && batchSize <= 500,
+    Preconditions.checkArgument(batchSize > 0 && batchSize <= ConfigurationConstants.MAX_BATCH_SIZE,
       "batchSize must be between 1 and 500");
 
     this.maxAttempts = context.getInteger("maxAttempts", ConfigurationConstants.DEFAULT_MAX_ATTEMPTS);
@@ -94,16 +92,25 @@ public class KinesisSink extends AbstractSink implements Configurable {
       sinkCounter = new SinkCounter(getName());
     }
 
-    if (batchBuilder == null) {
-      batchBuilder = new KinesisSinkBatchBuilder(
-        batchSize, DEFAULT_MAX_BATCH_BYTE_SIZE, DEFAULT_MAX_EVENT_SIZE, partitionKeyFromEvent);
-    }
+    this.maximumBatchSizeInBytes = context.getInteger(
+      "maximumBatchSizeInBytes", ConfigurationConstants.MAX_BATCH_BYTE_SIZE);
+    Preconditions.checkArgument(
+      maximumBatchSizeInBytes > 0 && maximumBatchSizeInBytes <= ConfigurationConstants.MAX_BATCH_BYTE_SIZE,
+      "batchByteSize must be between 1 and 5,000,000 bytes");
+
+    this.maximumEventSizeInBytes = context.getInteger(
+      "maximumEventSizeInBytes", ConfigurationConstants.MAX_BATCH_BYTE_SIZE);
+    Preconditions.checkArgument(
+      maximumEventSizeInBytes > 0 && maximumEventSizeInBytes <= ConfigurationConstants.MAX_EVENT_SIZE,
+      "batchByteSize must be between 1 and 1,000,000 bytes");
   }
 
   @Override
   public void start() {
     kinesisClient = new AmazonKinesisClient(credentialsProvider);
     kinesisClient.setEndpoint(this.endpoint);
+    batchBuilder = new KinesisSinkBatchBuilder(
+            batchSize, maximumBatchSizeInBytes, maximumEventSizeInBytes, partitionKeyFromEvent);
     sinkCounter.start();
   }
 

@@ -14,10 +14,6 @@ import java.util.Random;
 
 public class KinesisSinkBatchBuilder {
   private static final Log LOG = LogFactory.getLog(KinesisSinkBatchBuilder.class);
-  //kinesis limits
-  static int DEFAULT_MAX_BATCH_SIZE = 500;
-  static int DEFAULT_MAX_BATCH_BYTE_SIZE = 5000000;
-  static int DEFAULT_MAX_EVENT_SIZE = 1000000;
 
   private int batchSize;
   private int maxBatchByteSize;
