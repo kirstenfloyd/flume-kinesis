@@ -14,33 +14,83 @@ import java.util.Random;
 
 public class KinesisSinkBatchBuilder {
   private static final Log LOG = LogFactory.getLog(KinesisSinkBatchBuilder.class);
+  //kinesis limits
+  static int DEFAULT_MAX_BATCH_SIZE = 500;
+  static int DEFAULT_MAX_BATCH_BYTE_SIZE = 5000000;
+  static int DEFAULT_MAX_EVENT_SIZE = 1000000;
 
   private int batchSize;
+  private int maxBatchByteSize;
+  private int maxEventSize;
   private boolean usePartitionKeyFromEvent;
+  private Event carryOver;
 
-  public KinesisSinkBatchBuilder(int batchSize, boolean usePartitionKeyFromEvent) {
+  public KinesisSinkBatchBuilder(
+    int batchSize,
+    int maxBatchByteSize,
+    int maxEventSize,
+    boolean usePartitionKeyFromEvent
+  ) {
     this.batchSize = batchSize;
     this.usePartitionKeyFromEvent = usePartitionKeyFromEvent;
+    this.maxBatchByteSize = maxBatchByteSize;
+    this.maxEventSize = maxEventSize;
   }
 
   List<PutRecordsRequestEntry> buildBatch(Channel ch) {
     if (ch == null) {
       LOG.debug("Channel was null");
-      Collections.emptyList();
+      return Collections.emptyList();
     }
 
     List<PutRecordsRequestEntry> putRecordsRequestEntryList = Lists.newArrayList();
+    int currBatchByteSize = 0;
+
     while (putRecordsRequestEntryList.size() < batchSize) {
-      //Take an event from the channel
-      Event event = ch.take();
+      Event event = getNextEvent(ch);
+
       if (event == null) {
         break;
       }
-      PutRecordsRequestEntry entry = buildRequestEntry(event);
-      putRecordsRequestEntryList.add(entry);
+
+      int currEventSize = event.getBody().length;
+
+      if (isOverEventSizeLimit(currEventSize)) {
+        //drop message
+        continue;
+      }
+
+      if (isWithinSizeLimit(currEventSize, currBatchByteSize)) {
+        PutRecordsRequestEntry entry = buildRequestEntry(event);
+        putRecordsRequestEntryList.add(entry);
+        currBatchByteSize += currEventSize;
+      } else {
+        carryOver = event;
+        break;
+      }
     }
 
     return putRecordsRequestEntryList;
+  }
+
+  private Event getNextEvent(Channel ch) {
+    Event event;
+    if (carryOver != null) {
+      event = carryOver;
+      carryOver = null;
+    } else {
+      //Take an event from the channel
+      event = ch.take();
+    }
+    return event;
+  }
+
+  private boolean isWithinSizeLimit(int currEventSize, int currBatchByteSize) {
+    return currBatchByteSize + currEventSize <= maxBatchByteSize;
+  }
+
+  private boolean isOverEventSizeLimit(int eventSize) {
+    return eventSize > maxEventSize;
   }
 
   private PutRecordsRequestEntry buildRequestEntry(Event event) {

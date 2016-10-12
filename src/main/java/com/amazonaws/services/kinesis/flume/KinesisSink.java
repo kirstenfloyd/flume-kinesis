@@ -25,13 +25,11 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.services.kinesis.MyAwsCredentials;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.flume.Channel;
 import org.apache.flume.Context;
-import org.apache.flume.Event;
 import org.apache.flume.EventDeliveryException;
 import org.apache.flume.Transaction;
 import org.apache.flume.conf.Configurable;
@@ -43,6 +41,8 @@ import com.amazonaws.services.kinesis.model.PutRecordsRequest;
 import com.amazonaws.services.kinesis.model.PutRecordsRequestEntry;
 import com.amazonaws.services.kinesis.model.PutRecordsResult;
 import com.amazonaws.services.kinesis.model.PutRecordsResultEntry;
+
+import static com.amazonaws.services.kinesis.flume.KinesisSinkBatchBuilder.*;
 
 public class KinesisSink extends AbstractSink implements Configurable {
 
@@ -95,7 +95,8 @@ public class KinesisSink extends AbstractSink implements Configurable {
     }
 
     if (batchBuilder == null) {
-      batchBuilder = new KinesisSinkBatchBuilder(batchSize, partitionKeyFromEvent);
+      batchBuilder = new KinesisSinkBatchBuilder(
+        batchSize, DEFAULT_MAX_BATCH_BYTE_SIZE, DEFAULT_MAX_EVENT_SIZE, partitionKeyFromEvent);
     }
   }
 
