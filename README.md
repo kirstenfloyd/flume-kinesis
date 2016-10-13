@@ -70,3 +70,9 @@ Options for both are as follows:
 |maxAttempts|100|max number of times to attempt to send events.  After this the batch will be considered failed.  Must be >= 1.|
 |rollbackAfterMaxAttempts|false|whether to roll back the flume transaction if events cannot be sent after max attempts|
 |partitionKeyFromEvent|false|When set to true, instead of randomly generating a partition key for each event, will instead use the "key" that is set in the event headers.|
+
+Additional options for Kinesis Sink are as follows (easy to port the same changes to Firehose sink):
+|Name|Default|Description|
+-------|-----------|-------------|
+|maximumBatchSizeInBytes|5000000|max number of bytes to send per API call by Kinesis, limited to 5MB in Kinesis.|
+|maximumEventSizeInBytes|1000000|max size of an event, limited to 1MB by Kinesis.|
