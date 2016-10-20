@@ -5,6 +5,10 @@ package com.amazonaws.services.kinesis.flume;
  */
 final class ConfigurationConstants {
   static final int DEFAULT_BATCH_SIZE = 100;
+  //Kinesis limits
+  static final int MAX_BATCH_SIZE = 500;
+  static final int MAX_BATCH_BYTE_SIZE = 5000000;
+  static final int MAX_EVENT_SIZE = 1000000;
 
   static final int DEFAULT_MAX_ATTEMPTS = 100;
 

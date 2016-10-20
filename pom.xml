@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>flume-kinesis</groupId>
   <artifactId>flume-kinesis</artifactId>
-  <version>0.0.16-SNAPSHOT</version>
+  <version>0.0.17-SNAPSHOT</version>
 
   <properties>
     <sourceJavaVersion>1.7</sourceJavaVersion>
@@ -30,6 +30,18 @@
     	<groupId>org.apache.httpcomponents</groupId>
     	<artifactId>httpclient</artifactId>
     	<version>4.5.1</version>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.12</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-all</artifactId>
+      <version>1.10.19</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 
