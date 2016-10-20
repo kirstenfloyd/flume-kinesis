@@ -72,6 +72,7 @@ Options for both are as follows:
 |partitionKeyFromEvent|false|When set to true, instead of randomly generating a partition key for each event, will instead use the "key" that is set in the event headers.|
 
 Additional options for Kinesis Sink are as follows (easy to port the same changes to Firehose sink):
+
 |Name|Default|Description|
 -------|-----------|-------------|
 |maximumBatchSizeInBytes|5000000|max number of bytes to send per API call by Kinesis, limited to 5MB in Kinesis.|

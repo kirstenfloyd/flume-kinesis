@@ -89,7 +89,9 @@ public class KinesisSink extends AbstractSink implements Configurable {
       "maximumEventSizeInBytes", ConfigurationConstants.MAX_BATCH_BYTE_SIZE);
     Preconditions.checkArgument(
       maximumEventSizeInBytes > 0 && maximumEventSizeInBytes <= ConfigurationConstants.MAX_EVENT_SIZE,
-      String.format("maximumEventSizeInBytes", maximumEventSizeInBytes,ConfigurationConstants.MAX_EVENT_SIZE));
+      String.format(
+        errMsgTemplate, "maximumEventSizeInBytes", maximumEventSizeInBytes,ConfigurationConstants.MAX_EVENT_SIZE)
+    );
 
     this.maxAttempts = context.getInteger("maxAttempts", ConfigurationConstants.DEFAULT_MAX_ATTEMPTS);
     Preconditions.checkArgument(maxAttempts > 0, "maxAttempts must be greater than 0");
