@@ -38,6 +38,7 @@ For backward compatibility you can also specify credentials in the source/sink c
 |Name|Default|Description|
 -------|-----------|-------------|
 |endpoint|https://kinesis.us-east-1.amazonaws.com|endpoint to access kinesis|
+|region|us-east-1|region of dynamoDB and cloudWatch|
 |accessKeyId|null|AWS Access Key ID, deprecated - see AWS Credentials above|
 |secretAccessKey|null|AWS Secret Access Key, deprecated - see AWS Credentials above|
 |streamName|null|name of Kinesis stream|

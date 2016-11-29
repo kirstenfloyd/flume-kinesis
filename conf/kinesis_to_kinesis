@@ -8,6 +8,7 @@ node1.sources.KinesisSource.applicationName = FlumeSource
 node1.sources.KinesisSource.streamName = myLargeStream
 node1.sources.KinesisSource.initialPosition = TRIM_HORIZON
 node1.sources.KinesisSource.endpoint = https://kinesis.us-east-1.amazonaws.com
+nodes.sources.KinesisSource.region = us-east-1
 
 ## Sink
 node1.sinks.KinesisSink.type = com.amazonaws.services.kinesis.flume.KinesisSink 

@@ -38,7 +38,7 @@ import com.amazonaws.services.kinesis.clientlibrary.interfaces.IRecordProcessorF
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.InitialPositionInStream;
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.KinesisClientLibConfiguration;
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.Worker;
- 
+
 public class KinesisSource extends AbstractSource implements Configurable, PollableSource {
 
   private static final Log LOG = LogFactory.getLog(KinesisSource.class);
@@ -53,6 +53,8 @@ public class KinesisSource extends AbstractSource implements Configurable, Polla
   @Override
   public void configure(Context context) {
     String endpoint = context.getString("endpoint", ConfigurationConstants.DEFAULT_KINESIS_ENDPOINT);
+
+    String region = context.getString("region", ConfigurationConstants.DEFAULT_REGION);
 
     String streamName = Preconditions.checkNotNull(
         context.getString("streamName"), "streamName is required");
@@ -90,6 +92,7 @@ public class KinesisSource extends AbstractSource implements Configurable, Polla
     kinesisClientLibConfiguration = new KinesisClientLibConfiguration(applicationName, streamName,
         credentialsProvider, workerId).
         withKinesisEndpoint(endpoint).
+        withRegionName(region).
         withInitialPositionInStream(DEFAULT_INITIAL_POSITION);
 
   }
