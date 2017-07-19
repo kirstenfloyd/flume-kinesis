@@ -53,10 +53,14 @@ For Kinesis Streams:
 agent.sinks.kinesis.type = com.amazonaws.services.kinesis.flume.KinesisSink
 ```
 
+The endpoint should be a Kinesis Stream specific endpoint such as: `https://kinesis.us-west-2.amazonaws.com`
+
 For Kinesis Firehose:
 ```
 agent.sinks.kinesis.type = com.amazonaws.services.kinesis.flume.FirehoseSink
 ```
+
+The endpoint should be a Kinesis Firehose specific endpoint such as: `https://firehose.us-west-2.amazonaws.com`
 
 Options for both are as follows:
 
