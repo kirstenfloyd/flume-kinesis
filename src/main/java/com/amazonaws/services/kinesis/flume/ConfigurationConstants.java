@@ -22,6 +22,8 @@ final class ConfigurationConstants {
 
   static final String DEFAULT_FIREHOSE_ENDPOINT = "https://firehose.us-east-1.amazonaws.com";
 
+  static final String DEFAULT_REGION = "us-east-1";
+
   private ConfigurationConstants() {
     // Disable object creation
   }
