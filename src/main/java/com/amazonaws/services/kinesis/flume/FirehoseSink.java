@@ -42,6 +42,7 @@ import com.amazonaws.services.kinesisfirehose.model.PutRecordBatchRequest;
 import com.amazonaws.services.kinesisfirehose.model.Record;
 import com.amazonaws.services.kinesisfirehose.model.PutRecordBatchResult;
 import com.amazonaws.services.kinesisfirehose.model.PutRecordBatchResponseEntry;
+import org.rightnow.logging.transformers.EventTransformer;
 
 public class FirehoseSink extends AbstractSink implements Configurable {
   private static final Log LOG = LogFactory.getLog(FirehoseSink.class);
@@ -115,7 +116,11 @@ public class FirehoseSink extends AbstractSink implements Configurable {
           break;
         }
         Record entry = new Record();
-        entry.setData(ByteBuffer.wrap(event.getBody()));
+
+        EventTransformer transformer = new EventTransformer();
+        String json = transformer.getJson(event.getBody());
+        entry.setData(ByteBuffer.wrap(json.getBytes()));
+
         recordList.add(entry);
       }
 
