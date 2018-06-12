@@ -95,6 +95,7 @@ class FlumeSourceRecordProcessor implements IRecordProcessor {
           headers.put("timestamp", String.valueOf(System.currentTimeMillis()));
           String data = decoder.decode(record.getData()).toString();
           LOG.info(record.getSequenceNumber() + ", " + record.getPartitionKey()+":"+data);
+
           event.setBody(data.getBytes());
           event.setHeaders(headers);
           eventList.add(event);
