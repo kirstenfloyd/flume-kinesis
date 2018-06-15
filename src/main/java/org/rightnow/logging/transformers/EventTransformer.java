@@ -23,6 +23,7 @@ public class EventTransformer {
     public String getJson(byte[] bytes) {
         try {
             String json = DecompressBytesToString(bytes);
+            json += System.lineSeparator();
             return json;
         } catch (JsonSyntaxException e) {
             logger.log(Level.ERROR, e);
