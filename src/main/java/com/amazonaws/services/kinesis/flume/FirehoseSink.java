@@ -118,7 +118,7 @@ public class FirehoseSink extends AbstractSink implements Configurable {
         Record entry = new Record();
 
         EventTransformer transformer = new EventTransformer();
-        String json = transformer.getJson(event.getBody());
+        String json = transformer.getJson(event.getBody(), event);
         entry.setData(ByteBuffer.wrap(json.getBytes()));
 
         recordList.add(entry);
