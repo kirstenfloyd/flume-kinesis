@@ -1,8 +1,8 @@
 package org.rightnow.logging.models;
 
-/**
- * Created by ryancompere on 10/13/16.
- */
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class GenericEventModel {
 
     private String event_initiator;
@@ -18,6 +18,7 @@ public class GenericEventModel {
     private long timestamp;
     private long elapsed_time;
     private String event_details;
+    private long received_timestamp;
 
     public String getEventInitiator() {
         return event_initiator;
@@ -121,5 +122,13 @@ public class GenericEventModel {
 
     public void setEventDetails(String event_details) {
         this.event_details = event_details;
+    }
+
+    public long getReceived_timestamp() {
+        return received_timestamp;
+    }
+
+    public void setReceived_timestamp(long received_timestamp) {
+        this.received_timestamp = received_timestamp;
     }
 }

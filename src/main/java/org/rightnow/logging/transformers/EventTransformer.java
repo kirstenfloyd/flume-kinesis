@@ -1,17 +1,16 @@
 package org.rightnow.logging.transformers;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonSyntaxException;
 import org.apache.commons.lang.SerializationException;
 import org.apache.flume.Event;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.rightnow.logging.events.GenericEvent;
 import org.rightnow.logging.events.validators.GenericEventValidator;
 import org.rightnow.logging.models.EventErrorModel;
 import org.rightnow.logging.models.GenericEventModel;
-import org.rightnow.logging.models.GenericEventOutputModel;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -28,10 +27,6 @@ public class EventTransformer {
 
     private static final Logger logger = LogManager.getLogger(EventTransformer.class);
 
-    private static final String ERROR_HEADER_KEY = "event-error";
-    private static final String HAS_ERROR_VALUE = "true";
-    private static final String NO_ERROR_VALUE = "false";
-
     public String getJson(byte[] bytes, Event event) {
         try {
             String json = DecompressBytesToString(bytes);
@@ -42,7 +37,9 @@ public class EventTransformer {
                 EventErrorModel errorModel = ConvertEventToErrorModel(eventModel);
                 json = gson.toJson(errorModel);
             }
-
+            else{
+                json = GetFinalJsonToDeliver(json);
+            }
 
             json += System.lineSeparator();
             return json;
@@ -84,6 +81,28 @@ public class EventTransformer {
         }
 
         return model;
+    }
+
+    private String GetFinalJsonToDeliver(String json){
+        String finalJson;
+        try {
+            Gson gson = new Gson();
+
+            long currentTimestamp =System.currentTimeMillis();
+            GenericEventModel receivedModel = gson.fromJson(json, GenericEventModel.class);
+            JsonElement jsonElement = gson.toJsonTree(receivedModel);
+            jsonElement.getAsJsonObject().addProperty("received_timestamp", currentTimestamp);
+            finalJson = gson.toJson(jsonElement);
+
+        } catch (JsonSyntaxException e) {
+            logger.log(Level.ERROR, e);
+            throw new SerializationException(e);
+        } catch (Exception e) {
+            logger.log(Level.ERROR, e);
+            throw new SerializationException(e);
+        }
+
+        return finalJson;
     }
 
     private EventErrorModel ConvertEventToErrorModel(GenericEventModel eventModel){
